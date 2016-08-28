@@ -1,32 +1,32 @@
 /*****************************************************************************
-* 
-* Monitoring check_smtp plugin
-* 
-* License: GPL
-* Copyright (c) 2000-2007 Monitoring Plugins Development Team
-* 
-* Description:
-* 
-* This file contains the check_smtp plugin
-* 
-* This plugin will attempt to open an SMTP connection with the host.
-* 
-* 
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-* 
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-* 
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-* 
-* 
-*****************************************************************************/
+ *
+ * Monitoring check_smtp plugin
+ *
+ * License: GPL
+ * Copyright (c) 2000-2007 Monitoring Plugins Development Team
+ *
+ * Description:
+ *
+ * This file contains the check_smtp plugin
+ *
+ * This plugin will attempt to open an SMTP connection with the host.
+ *
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ *****************************************************************************/
 
 const char *progname = "check_smtp";
 const char *copyright = "2000-2007";
@@ -49,8 +49,9 @@ int days_till_exp_warn, days_till_exp_crit;
 #  define my_send(buf, len) send(sd, buf, len, 0)
 #endif
 
-enum {
-	SMTP_PORT	= 25
+enum
+{
+	SMTP_PORT = 25
 };
 #define SMTP_EXPECT "220"
 #define SMTP_HELO "HELO "
@@ -110,9 +111,10 @@ short ssl_established = 0;
 char *localhostname = NULL;
 int sd;
 char buffer[MAX_INPUT_BUFFER];
-enum {
-  TCP_PROTOCOL = 1,
-  UDP_PROTOCOL = 2,
+enum
+{
+	TCP_PROTOCOL = 1,
+	UDP_PROTOCOL = 2,
 };
 int ignore_send_quit_failure = FALSE;
 
@@ -120,7 +122,7 @@ int ignore_send_quit_failure = FALSE;
 int
 main (int argc, char **argv)
 {
-	short supports_tls=FALSE;
+	short supports_tls = FALSE;
 	int n = 0;
 	double elapsed_time;
 	long microsec;
@@ -138,30 +140,30 @@ main (int argc, char **argv)
 	textdomain (PACKAGE);
 
 	/* Parse extra opts if any */
-	argv=np_extra_opts (&argc, argv, progname);
+	argv = np_extra_opts (&argc, argv, progname);
 
 	if (process_arguments (argc, argv) == ERROR)
 		usage4 (_("Could not parse arguments"));
 
 	/* If localhostname not set on command line, use gethostname to set */
-	if(! localhostname){
+	if (!localhostname) {
 		localhostname = malloc (HOST_MAX_BYTES);
-		if(!localhostname){
-			printf(_("malloc() failed!\n"));
+		if (!localhostname) {
+			printf (_("malloc() failed!\n"));
 			return STATE_CRITICAL;
 		}
-		if(gethostname(localhostname, HOST_MAX_BYTES)){
-			printf(_("gethostname() failed!\n"));
+		if (gethostname (localhostname, HOST_MAX_BYTES)) {
+			printf (_("gethostname() failed!\n"));
 			return STATE_CRITICAL;
 		}
 	}
-	if(use_ehlo)
+	if (use_ehlo)
 		xasprintf (&helocmd, "%s%s%s", SMTP_EHLO, localhostname, "\r\n");
 	else
 		xasprintf (&helocmd, "%s%s%s", SMTP_HELO, localhostname, "\r\n");
 
 	if (verbose)
-		printf("HELOCMD: %s", helocmd);
+		printf ("HELOCMD: %s", helocmd);
 
 	/* initialize the MAIL command with optional FROM command  */
 	xasprintf (&cmd_str, "%sFROM:<%s>%s", mail_command, from_arg, "\r\n");
@@ -181,11 +183,11 @@ main (int argc, char **argv)
 	/* try to connect to the host at the given port number */
 	result = my_tcp_connect (server_address, server_port, &sd);
 
-	if (result == STATE_OK) { /* we connected */
+	if (result == STATE_OK) {			/* we connected */
 
 		/* watch for the SMTP connection string and */
 		/* return a WARNING status if we couldn't read any data */
-		if (recvlines(buffer, MAX_INPUT_BUFFER) <= 0) {
+		if (recvlines (buffer, MAX_INPUT_BUFFER) <= 0) {
 			printf (_("recv() failed\n"));
 			return STATE_WARNING;
 		}
@@ -206,95 +208,98 @@ main (int argc, char **argv)
 		}
 
 		/* send the HELO/EHLO command */
-		send(sd, helocmd, strlen(helocmd), 0);
+		send (sd, helocmd, strlen (helocmd), 0);
 
 		/* allow for response to helo command to reach us */
-		if (recvlines(buffer, MAX_INPUT_BUFFER) <= 0) {
+		if (recvlines (buffer, MAX_INPUT_BUFFER) <= 0) {
 			printf (_("recv() failed\n"));
 			return STATE_WARNING;
-		} else if(use_ehlo){
-			if(strstr(buffer, "250 STARTTLS") != NULL ||
-			   strstr(buffer, "250-STARTTLS") != NULL){
-				supports_tls=TRUE;
+		}
+		else if (use_ehlo) {
+			if (strstr (buffer, "250 STARTTLS") != NULL ||
+					strstr (buffer, "250-STARTTLS") != NULL) {
+				supports_tls = TRUE;
 			}
 		}
 
-		if(use_ssl && ! supports_tls){
-			printf(_("WARNING - TLS not supported by server\n"));
-			smtp_quit();
+		if (use_ssl && !supports_tls) {
+			printf (_("WARNING - TLS not supported by server\n"));
+			smtp_quit ();
 			return STATE_WARNING;
 		}
 
 #ifdef HAVE_SSL
-		if(use_ssl) {
-		  /* send the STARTTLS command */
-		  send(sd, SMTP_STARTTLS, strlen(SMTP_STARTTLS), 0);
+		if (use_ssl) {
+			/* send the STARTTLS command */
+			send (sd, SMTP_STARTTLS, strlen (SMTP_STARTTLS), 0);
 
-		  recvlines(buffer, MAX_INPUT_BUFFER); /* wait for it */
-		  if (!strstr (buffer, SMTP_EXPECT)) {
-		    printf (_("Server does not support STARTTLS\n"));
-		    smtp_quit();
-		    return STATE_UNKNOWN;
-		  }
-		  result = np_net_ssl_init(sd);
-		  if(result != STATE_OK) {
-		    printf (_("CRITICAL - Cannot create SSL context.\n"));
-		    np_net_ssl_cleanup();
-		    close(sd);
-		    return STATE_CRITICAL;
-		  } else {
-			ssl_established = 1;
-		  }
+			recvlines (buffer, MAX_INPUT_BUFFER);	/* wait for it */
+			if (!strstr (buffer, SMTP_EXPECT)) {
+				printf (_("Server does not support STARTTLS\n"));
+				smtp_quit ();
+				return STATE_UNKNOWN;
+			}
+			result = np_net_ssl_init (sd);
+			if (result != STATE_OK) {
+				printf (_("CRITICAL - Cannot create SSL context.\n"));
+				np_net_ssl_cleanup ();
+				close (sd);
+				return STATE_CRITICAL;
+			}
+			else {
+				ssl_established = 1;
+			}
 
-		/*
-		 * Resend the EHLO command.
-		 *
-		 * RFC 3207 (4.2) says: ``The client MUST discard any knowledge
-		 * obtained from the server, such as the list of SMTP service
-		 * extensions, which was not obtained from the TLS negotiation
-		 * itself.  The client SHOULD send an EHLO command as the first
-		 * command after a successful TLS negotiation.''  For this
-		 * reason, some MTAs will not allow an AUTH LOGIN command before
-		 * we resent EHLO via TLS.
-		 */
-		if (my_send(helocmd, strlen(helocmd)) <= 0) {
-			printf("%s\n", _("SMTP UNKNOWN - Cannot send EHLO command via TLS."));
-			my_close();
-			return STATE_UNKNOWN;
-		}
-		if (verbose)
-			printf(_("sent %s"), helocmd);
-		if ((n = recvlines(buffer, MAX_INPUT_BUFFER)) <= 0) {
-			printf("%s\n", _("SMTP UNKNOWN - Cannot read EHLO response via TLS."));
-			my_close();
-			return STATE_UNKNOWN;
-		}
-		if (verbose) {
-			printf("%s", buffer);
-		}
+			/*
+			 * Resend the EHLO command.
+			 *
+			 * RFC 3207 (4.2) says: ``The client MUST discard any knowledge
+			 * obtained from the server, such as the list of SMTP service
+			 * extensions, which was not obtained from the TLS negotiation
+			 * itself.  The client SHOULD send an EHLO command as the first
+			 * command after a successful TLS negotiation.''  For this
+			 * reason, some MTAs will not allow an AUTH LOGIN command before
+			 * we resent EHLO via TLS.
+			 */
+			if (my_send (helocmd, strlen (helocmd)) <= 0) {
+				printf ("%s\n", _("SMTP UNKNOWN - Cannot send EHLO command via TLS."));
+				my_close ();
+				return STATE_UNKNOWN;
+			}
+			if (verbose)
+				printf (_("sent %s"), helocmd);
+			if ((n = recvlines (buffer, MAX_INPUT_BUFFER)) <= 0) {
+				printf ("%s\n", _("SMTP UNKNOWN - Cannot read EHLO response via TLS."));
+				my_close ();
+				return STATE_UNKNOWN;
+			}
+			if (verbose) {
+				printf ("%s", buffer);
+			}
 
-#  ifdef USE_OPENSSL
-		  if ( check_cert ) {
-                    result = np_net_ssl_check_cert(days_till_exp_warn, days_till_exp_crit);
-		    smtp_quit();
-		    my_close();
-		    return result;
-		  }
-#  endif /* USE_OPENSSL */
+#ifdef USE_OPENSSL
+			if (check_cert) {
+				result =
+					np_net_ssl_check_cert (days_till_exp_warn, days_till_exp_crit);
+				smtp_quit ();
+				my_close ();
+				return result;
+			}
+#endif /* USE_OPENSSL */
 		}
 #endif
 
 		if (send_mail_from) {
-		  my_send(cmd_str, strlen(cmd_str));
-		  if (recvlines(buffer, MAX_INPUT_BUFFER) >= 1 && verbose)
-		    printf("%s", buffer);
+			my_send (cmd_str, strlen (cmd_str));
+			if (recvlines (buffer, MAX_INPUT_BUFFER) >= 1 && verbose)
+				printf ("%s", buffer);
 		}
 
 		while (n < ncommands) {
 			xasprintf (&cmd_str, "%s%s", commands[n], "\r\n");
-			my_send(cmd_str, strlen(cmd_str));
-			if (recvlines(buffer, MAX_INPUT_BUFFER) >= 1 && verbose)
-				printf("%s", buffer);
+			my_send (cmd_str, strlen (cmd_str));
+			if (recvlines (buffer, MAX_INPUT_BUFFER) >= 1 && verbose)
+				printf ("%s", buffer);
 			strip (buffer);
 			if (n < nresponses) {
 				cflags |= REG_EXTENDED | REG_NOSUB | REG_NEWLINE;
@@ -328,22 +333,22 @@ main (int argc, char **argv)
 				do {
 					if (authuser == NULL) {
 						result = STATE_CRITICAL;
-						xasprintf(&error_msg, _("no authuser specified, "));
+						xasprintf (&error_msg, _("no authuser specified, "));
 						break;
 					}
 					if (authpass == NULL) {
 						result = STATE_CRITICAL;
-						xasprintf(&error_msg, _("no authpass specified, "));
+						xasprintf (&error_msg, _("no authpass specified, "));
 						break;
 					}
 
 					/* send AUTH LOGIN */
-					my_send(SMTP_AUTH_LOGIN, strlen(SMTP_AUTH_LOGIN));
+					my_send (SMTP_AUTH_LOGIN, strlen (SMTP_AUTH_LOGIN));
 					if (verbose)
 						printf (_("sent %s\n"), "AUTH LOGIN");
 
-					if ((ret = recvlines(buffer, MAX_INPUT_BUFFER)) <= 0) {
-						xasprintf(&error_msg, _("recv() failed after AUTH LOGIN, "));
+					if ((ret = recvlines (buffer, MAX_INPUT_BUFFER)) <= 0) {
+						xasprintf (&error_msg, _("recv() failed after AUTH LOGIN, "));
 						result = STATE_WARNING;
 						break;
 					}
@@ -352,20 +357,20 @@ main (int argc, char **argv)
 
 					if (strncmp (buffer, "334", 3) != 0) {
 						result = STATE_CRITICAL;
-						xasprintf(&error_msg, _("invalid response received after AUTH LOGIN, "));
+						xasprintf (&error_msg, _("invalid response received after AUTH LOGIN, "));
 						break;
 					}
 
 					/* encode authuser with base64 */
-					base64_encode_alloc (authuser, strlen(authuser), &abuf);
-					xasprintf(&abuf, "%s\r\n", abuf);
-					my_send(abuf, strlen(abuf));
+					base64_encode_alloc (authuser, strlen (authuser), &abuf);
+					xasprintf (&abuf, "%s\r\n", abuf);
+					my_send (abuf, strlen (abuf));
 					if (verbose)
 						printf (_("sent %s\n"), abuf);
 
-					if ((ret = recvlines(buffer, MAX_INPUT_BUFFER)) <= 0) {
+					if ((ret = recvlines (buffer, MAX_INPUT_BUFFER)) <= 0) {
 						result = STATE_CRITICAL;
-						xasprintf(&error_msg, _("recv() failed after sending authuser, "));
+						xasprintf (&error_msg, _("recv() failed after sending authuser, "));
 						break;
 					}
 					if (verbose) {
@@ -373,19 +378,19 @@ main (int argc, char **argv)
 					}
 					if (strncmp (buffer, "334", 3) != 0) {
 						result = STATE_CRITICAL;
-						xasprintf(&error_msg, _("invalid response received after authuser, "));
+						xasprintf (&error_msg, _("invalid response received after authuser, "));
 						break;
 					}
 					/* encode authpass with base64 */
-					base64_encode_alloc (authpass, strlen(authpass), &abuf);
-					xasprintf(&abuf, "%s\r\n", abuf);
-					my_send(abuf, strlen(abuf));
+					base64_encode_alloc (authpass, strlen (authpass), &abuf);
+					xasprintf (&abuf, "%s\r\n", abuf);
+					my_send (abuf, strlen (abuf));
 					if (verbose) {
 						printf (_("sent %s\n"), abuf);
 					}
-					if ((ret = recvlines(buffer, MAX_INPUT_BUFFER)) <= 0) {
+					if ((ret = recvlines (buffer, MAX_INPUT_BUFFER)) <= 0) {
 						result = STATE_CRITICAL;
-						xasprintf(&error_msg, _("recv() failed after sending authpass, "));
+						xasprintf (&error_msg, _("recv() failed after sending authpass, "));
 						break;
 					}
 					if (verbose) {
@@ -393,19 +398,20 @@ main (int argc, char **argv)
 					}
 					if (strncmp (buffer, "235", 3) != 0) {
 						result = STATE_CRITICAL;
-						xasprintf(&error_msg, _("invalid response received after authpass, "));
+						xasprintf (&error_msg, _("invalid response received after authpass, "));
 						break;
 					}
 					break;
 				} while (0);
-			} else {
+			}
+			else {
 				result = STATE_CRITICAL;
-				xasprintf(&error_msg, _("only authtype LOGIN is supported, "));
+				xasprintf (&error_msg, _("only authtype LOGIN is supported, "));
 			}
 		}
 
 		/* tell the server we're done */
-		smtp_quit();
+		smtp_quit ();
 
 		/* finally close the connection */
 		close (sd);
@@ -415,7 +421,7 @@ main (int argc, char **argv)
 	alarm (0);
 
 	microsec = deltime (tv);
-	elapsed_time = (double)microsec / 1.0e6;
+	elapsed_time = (double) microsec / 1.0e6;
 
 	if (result == STATE_OK) {
 		if (check_critical_time && elapsed_time > critical_time)
@@ -425,14 +431,14 @@ main (int argc, char **argv)
 	}
 
 	printf (_("SMTP %s - %s%.3f sec. response time%s%s|%s\n"),
-			state_text (result),
-			error_msg,
-			elapsed_time,
-			verbose?", ":"", verbose?buffer:"",
-			fperfdata ("time", elapsed_time, "s",
-				(int)check_warning_time, warning_time,
-				(int)check_critical_time, critical_time,
-				TRUE, 0, FALSE, 0));
+					state_text (result),
+					error_msg,
+					elapsed_time,
+					verbose ? ", " : "", verbose ? buffer : "",
+					fperfdata ("time", elapsed_time, "s",
+										 (int) check_warning_time, warning_time,
+										 (int) check_critical_time, critical_time,
+										 TRUE, 0, FALSE, 0));
 
 	return result;
 }
@@ -444,7 +450,7 @@ int
 process_arguments (int argc, char **argv)
 {
 	int c;
-	char* temp;
+	char *temp;
 
 	int option = 0;
 	static struct option longopts[] = {
@@ -466,9 +472,9 @@ process_arguments (int argc, char **argv)
 		{"use-ipv4", no_argument, 0, '4'},
 		{"use-ipv6", no_argument, 0, '6'},
 		{"help", no_argument, 0, 'h'},
-		{"starttls",no_argument,0,'S'},
-		{"certificate",required_argument,0,'D'},
-		{"ignore-quit-failure",no_argument,0,'q'},
+		{"starttls", no_argument, 0, 'S'},
+		{"certificate", required_argument, 0, 'D'},
+		{"ignore-quit-failure", no_argument, 0, 'q'},
 		{0, 0, 0, 0}
 	};
 
@@ -507,12 +513,12 @@ process_arguments (int argc, char **argv)
 				usage4 (_("Port must be a positive integer"));
 			break;
 		case 'F':
-		/* localhostname */
-			localhostname = strdup(optarg);
+			/* localhostname */
+			localhostname = strdup (optarg);
 			break;
 		case 'f':									/* from argument */
-			from_arg = optarg + strspn(optarg, "<");
-			from_arg = strndup(from_arg, strcspn(from_arg, ">"));
+			from_arg = optarg + strspn (optarg, "<");
+			from_arg = strndup (from_arg, strcspn (from_arg, ">"));
 			send_mail_from = 1;
 			break;
 		case 'A':
@@ -530,25 +536,25 @@ process_arguments (int argc, char **argv)
 			break;
 		case 'C':									/* commands  */
 			if (ncommands >= command_size) {
-				command_size+=8;
-				commands = realloc (commands, sizeof(char *) * command_size);
+				command_size += 8;
+				commands = realloc (commands, sizeof (char *) * command_size);
 				if (commands == NULL)
 					die (STATE_UNKNOWN,
 					     _("Could not realloc() units [%d]\n"), ncommands);
 			}
-			commands[ncommands] = (char *) malloc (sizeof(char) * 255);
+			commands[ncommands] = (char *) malloc (sizeof (char) * 255);
 			strncpy (commands[ncommands], optarg, 255);
 			ncommands++;
 			break;
 		case 'R':									/* server responses */
 			if (nresponses >= response_size) {
 				response_size += 8;
-				responses = realloc (responses, sizeof(char *) * response_size);
+				responses = realloc (responses, sizeof (char *) * response_size);
 				if (responses == NULL)
 					die (STATE_UNKNOWN,
 					     _("Could not realloc() units [%d]\n"), nresponses);
 			}
-			responses[nresponses] = (char *) malloc (sizeof(char) * 255);
+			responses[nresponses] = (char *) malloc (sizeof (char) * 255);
 			strncpy (responses[nresponses], optarg, 255);
 			nresponses++;
 			break;
@@ -572,7 +578,7 @@ process_arguments (int argc, char **argv)
 			verbose++;
 			break;
 		case 'q':
-			ignore_send_quit_failure++;             /* ignore problem sending QUIT */
+			ignore_send_quit_failure++;	/* ignore problem sending QUIT */
 			break;
 		case 't':									/* timeout */
 			if (is_intnonneg (optarg)) {
@@ -583,32 +589,32 @@ process_arguments (int argc, char **argv)
 			}
 			break;
 		case 'D':
-		/* Check SSL cert validity */
+			/* Check SSL cert validity */
 #ifdef USE_OPENSSL
-                        if ((temp=strchr(optarg,','))!=NULL) {
-                            *temp='\0';
-                            if (!is_intnonneg (optarg))
-                               usage2 ("Invalid certificate expiration period", optarg);
-                            days_till_exp_warn = atoi(optarg);
-                            *temp=',';
-                            temp++;
-                            if (!is_intnonneg (temp))
-                                usage2 (_("Invalid certificate expiration period"), temp);
-                            days_till_exp_crit = atoi (temp);
-                        }
-                        else {
-                            days_till_exp_crit=0;
-                            if (!is_intnonneg (optarg))
-                                usage2 ("Invalid certificate expiration period", optarg);
-                            days_till_exp_warn = atoi (optarg);
-                        }
+			if ((temp = strchr (optarg, ',')) != NULL) {
+				*temp = '\0';
+				if (!is_intnonneg (optarg))
+					usage2 ("Invalid certificate expiration period", optarg);
+				days_till_exp_warn = atoi (optarg);
+				*temp = ',';
+				temp++;
+				if (!is_intnonneg (temp))
+					usage2 (_("Invalid certificate expiration period"), temp);
+				days_till_exp_crit = atoi (temp);
+			}
+			else {
+				days_till_exp_crit = 0;
+				if (!is_intnonneg (optarg))
+					usage2 ("Invalid certificate expiration period", optarg);
+				days_till_exp_warn = atoi (optarg);
+			}
 			check_cert = TRUE;
 			ignore_send_quit_failure = TRUE;
 #else
 			usage (_("SSL support not available - install OpenSSL and recompile"));
 #endif
 		case 'S':
-		/* starttls */
+			/* starttls */
 			use_ssl = TRUE;
 			use_ehlo = TRUE;
 			break;
@@ -650,10 +656,10 @@ process_arguments (int argc, char **argv)
 		server_expect = strdup (SMTP_EXPECT);
 
 	if (mail_command == NULL)
-		mail_command = strdup("MAIL ");
+		mail_command = strdup ("MAIL ");
 
-	if (from_arg==NULL)
-		from_arg = strdup(" ");
+	if (from_arg == NULL)
+		from_arg = strdup (" ");
 
 	return validate_arguments ();
 }
@@ -668,36 +674,36 @@ validate_arguments (void)
 
 
 void
-smtp_quit(void)
+smtp_quit (void)
 {
 	int bytes;
 	int n;
 
-	n = my_send(SMTP_QUIT, strlen(SMTP_QUIT));
-	if(n < 0) {
-		if(ignore_send_quit_failure) {
-			if(verbose) {
-				printf(_("Connection closed by server before sending QUIT command\n"));
+	n = my_send (SMTP_QUIT, strlen (SMTP_QUIT));
+	if (n < 0) {
+		if (ignore_send_quit_failure) {
+			if (verbose) {
+				printf (_("Connection closed by server before sending QUIT command\n"));
 			}
 			return;
 		}
 		die (STATE_UNKNOWN,
-			_("Connection closed by server before sending QUIT command\n"));
+		     _("Connection closed by server before sending QUIT command\n"));
 	}
 
 	if (verbose)
-		printf(_("sent %s\n"), "QUIT");
+		printf (_("sent %s\n"), "QUIT");
 
 	/* read the response but don't care about problems */
-	bytes = recvlines(buffer, MAX_INPUT_BUFFER);
+	bytes = recvlines (buffer, MAX_INPUT_BUFFER);
 	if (verbose) {
 		if (bytes < 0)
-			printf(_("recv() failed after QUIT."));
+			printf (_("recv() failed after QUIT."));
 		else if (bytes == 0)
-			printf(_("Connection reset by peer."));
+			printf (_("Connection reset by peer."));
 		else {
 			buffer[bytes] = '\0';
-			printf(_("received %s\n"), buffer);
+			printf (_("received %s\n"), buffer);
 		}
 	}
 }
@@ -713,13 +719,13 @@ smtp_quit(void)
  * check_smtp and other plugins to use that.  Also, remove (\r)\n.
  */
 int
-recvline(char *buf, size_t bufsize)
+recvline (char *buf, size_t bufsize)
 {
 	int result;
 	unsigned i;
 
 	for (i = result = 0; i < bufsize - 1; i++) {
-		if ((result = my_recv(&buf[i], 1)) != 1)
+		if ((result = my_recv (&buf[i], 1)) != 1)
 			break;
 		if (buf[i] == '\n') {
 			buf[++i] = '\0';
@@ -745,16 +751,15 @@ recvline(char *buf, size_t bufsize)
  * TODO: Move this to netutils.c.  Also, remove \r and possibly the final \n.
  */
 int
-recvlines(char *buf, size_t bufsize)
+recvlines (char *buf, size_t bufsize)
 {
 	int result, i;
 
-	for (i = 0; /* forever */; i += result)
-		if (!((result = recvline(buf + i, bufsize - i)) > 3 &&
-		    isdigit((int)buf[i]) &&
-		    isdigit((int)buf[i + 1]) &&
-		    isdigit((int)buf[i + 2]) &&
-		    buf[i + 3] == '-'))
+	for (i = 0; /* forever */ ; i += result)
+		if (!((result = recvline (buf + i, bufsize - i)) > 3 &&
+		      isdigit ((int) buf[i]) &&
+		      isdigit ((int) buf[i + 1]) &&
+		      isdigit ((int) buf[i + 2]) && buf[i + 3] == '-'))
 			break;
 
 	return (result <= 0) ? result : result + i;
@@ -765,9 +770,9 @@ int
 my_close (void)
 {
 #ifdef HAVE_SSL
-  np_net_ssl_cleanup();
+	np_net_ssl_cleanup ();
 #endif
-  return close(sd);
+	return close (sd);
 }
 
 
@@ -782,9 +787,9 @@ print_help (void)
 	printf ("Copyright (c) 1999-2001 Ethan Galstad <nagios@nagios.org>\n");
 	printf (COPYRIGHT, copyright, email);
 
-	printf("%s\n", _("This plugin will attempt to open an SMTP connection with the host."));
+	printf ("%s\n", _("This plugin will attempt to open an SMTP connection with the host."));
 
-  printf ("\n\n");
+	printf ("\n\n");
 
 	print_usage ();
 
@@ -796,42 +801,43 @@ print_help (void)
 	printf (UT_IPv46);
 
 	printf (" %s\n", "-e, --expect=STRING");
-  printf (_("    String to expect in first line of server response (default: '%s')\n"), SMTP_EXPECT);
-  printf (" %s\n", "-C, --command=STRING");
-  printf ("    %s\n", _("SMTP command (may be used repeatedly)"));
-  printf (" %s\n", "-R, --response=STRING");
-  printf ("    %s\n", _("Expected response to command (may be used repeatedly)"));
-  printf (" %s\n", "-f, --from=STRING");
-  printf ("    %s\n", _("FROM-address to include in MAIL command, required by Exchange 2000")),
-  printf (" %s\n", "-F, --fqdn=STRING");
-  printf ("    %s\n", _("FQDN used for HELO"));
+	printf (_("    String to expect in first line of server response (default: '%s')\n"),
+	        SMTP_EXPECT);
+	printf (" %s\n", "-C, --command=STRING");
+	printf ("    %s\n", _("SMTP command (may be used repeatedly)"));
+	printf (" %s\n", "-R, --response=STRING");
+	printf ("    %s\n", _("Expected response to command (may be used repeatedly)"));
+	printf (" %s\n", "-f, --from=STRING");
+	printf ("    %s\n", _("FROM-address to include in MAIL command, required by Exchange 2000"));
+	printf (" %s\n", "-F, --fqdn=STRING");
+	printf ("    %s\n", _("FQDN used for HELO"));
 #ifdef HAVE_SSL
-  printf (" %s\n", "-D, --certificate=INTEGER[,INTEGER]");
-  printf ("    %s\n", _("Minimum number of days a certificate has to be valid."));
-  printf (" %s\n", "-S, --starttls");
-  printf ("    %s\n", _("Use STARTTLS for the connection."));
+	printf (" %s\n", "-D, --certificate=INTEGER[,INTEGER]");
+	printf ("    %s\n", _("Minimum number of days a certificate has to be valid."));
+	printf (" %s\n", "-S, --starttls");
+	printf ("    %s\n", _("Use STARTTLS for the connection."));
 #endif
 
 	printf (" %s\n", "-A, --authtype=STRING");
-  printf ("    %s\n", _("SMTP AUTH type to check (default none, only LOGIN supported)"));
-  printf (" %s\n", "-U, --authuser=STRING");
-  printf ("    %s\n", _("SMTP AUTH username"));
-  printf (" %s\n", "-P, --authpass=STRING");
-  printf ("    %s\n", _("SMTP AUTH password"));
-  printf (" %s\n", "-q, --ignore-quit-failure");
-  printf ("    %s\n", _("Ignore failure when sending QUIT command to server"));
-   
+	printf ("    %s\n", _("SMTP AUTH type to check (default none, only LOGIN supported)"));
+	printf (" %s\n", "-U, --authuser=STRING");
+	printf ("    %s\n", _("SMTP AUTH username"));
+	printf (" %s\n", "-P, --authpass=STRING");
+	printf ("    %s\n", _("SMTP AUTH password"));
+	printf (" %s\n", "-q, --ignore-quit-failure");
+	printf ("    %s\n", _("Ignore failure when sending QUIT command to server"));
+
 	printf (UT_WARN_CRIT);
 
 	printf (UT_CONN_TIMEOUT, DEFAULT_SOCKET_TIMEOUT);
 
 	printf (UT_VERBOSE);
 
-	printf("\n");
+	printf ("\n");
 	printf ("%s\n", _("Successul connects return STATE_OK, refusals and timeouts return"));
-  printf ("%s\n", _("STATE_CRITICAL, other errors return STATE_UNKNOWN.  Successful"));
-  printf ("%s\n", _("connects, but incorrect reponse messages from the host result in"));
-  printf ("%s\n", _("STATE_WARNING return values."));
+	printf ("%s\n", _("STATE_CRITICAL, other errors return STATE_UNKNOWN.  Successful"));
+	printf ("%s\n", _("connects, but incorrect reponse messages from the host result in"));
+	printf ("%s\n", _("STATE_WARNING return values."));
 
 	printf (UT_SUPPORT);
 }
@@ -841,9 +847,9 @@ print_help (void)
 void
 print_usage (void)
 {
-  printf ("%s\n", _("Usage:"));
-  printf ("%s -H host [-p port] [-4|-6] [-e expect] [-C command] [-R response] [-f from addr]\n", progname);
-  printf ("[-A authtype -U authuser -P authpass] [-w warn] [-c crit] [-t timeout] [-q]\n");
-  printf ("[-F fqdn] [-S] [-D warn days cert expire[,crit days cert expire]] [-v] \n");
+	printf ("%s\n", _("Usage:"));
+	printf ("%s -H host [-p port] [-4|-6] [-e expect] [-C command] [-R response] [-f from addr]\n",
+	        progname);
+	printf ("[-A authtype -U authuser -P authpass] [-w warn] [-c crit] [-t timeout] [-q]\n");
+	printf ("[-F fqdn] [-S] [-D warn days cert expire[,crit days cert expire]] [-v] \n");
 }
-
